@@ -19,6 +19,7 @@ async def create_table():
 
 async def create_new_bump_data(user_id, bump_datetime, near):
     async with aiosqlite.connect(database_name) as db:
+        # datetimeはtimestampで保存
         await db.execute('insert into bump values(?, ?, ?)', (user_id, bump_datetime.timestamp(), near))
         await db.commit()
     return True
@@ -39,6 +40,7 @@ async def get_all_bump_data():
 async def get_range_bump_data_(before, after):
     user_data = {}
     async with aiosqlite.connect(database_name) as db:
+        # datetimeはtimestampで保存されているためtimestampに変換
         async with db.execute('SELECT * FROM bump where ? < bump_datetime and ? > bump_datetime', (before.timestamp(), after.timestamp())) as cursor:
             async for row in cursor:
                 if not row[0] in user_data.keys():
@@ -67,5 +69,5 @@ async def test():
 
 if __name__ == '__main__':
     import asyncio
-    # asyncio.get_event_loop().run_until_complete(test())
-    asyncio.get_event_loop().run_until_complete(drop_all_data())
+    asyncio.get_event_loop().run_until_complete(test())
+    # asyncio.get_event_loop().run_until_complete(drop_all_data())

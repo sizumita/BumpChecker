@@ -62,6 +62,7 @@ class MyBot(commands.Bot):
             await self.bump_request_failed(int(user_id), message)
         else:
             await self.bump_request_succeeded(int(user_id), message)
+        self.loop.create_task(self.bump_notice())
 
     async def bump_request_failed(self, user_id, message: discord.Message):
         """二回連続で失敗した場合"""

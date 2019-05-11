@@ -13,6 +13,6 @@ TOKEN=あなたのBotトークン
 
 # 必要なライブラリ
 ```text
-discord.py<=1.0.0
-aiosqlite<=0.10.0
+discord.py>=1.0.0
+aiosqlite>=0.10.0
 ```

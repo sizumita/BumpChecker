@@ -9,6 +9,8 @@ gitに上がっている以外に`bumpchecker.db`と`.env`ファイルがあり�
 
 ```text
 TOKEN=あなたのBotトークン
+NOTICE_CHANNEL_ID=bumpをするお知らせをしたいチャンネルのid（複数ある場合は,で仕切ってください。）
+NOTICE_MESSAGE=bumpのお知らせのメッセージ
 ```
 
 # 必要なライブラリ

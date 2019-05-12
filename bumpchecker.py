@@ -1,10 +1,13 @@
 import datetime
-import discord
-from discord.ext import commands
 import os
 from os.path import join, dirname
+
+import discord
+from discord.ext import commands
 from dotenv import load_dotenv
+
 from database import *
+
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
@@ -87,6 +90,9 @@ class MyBot(commands.Bot):
         self.last_bumped_datetime = message.created_at
         embed = discord.Embed(title="セット完了", description="次回のbumpの計測を開始しました。")
         await message.channel.send(embed=embed)
+
+    async def on_command_error(self, context, exception):
+        pass
 
 
 bot = MyBot('!')

@@ -1,7 +1,8 @@
+import asyncio
 import datetime
 import os
 from os.path import join, dirname
-import asyncio
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -12,8 +13,15 @@ dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
 disboard_bot_id = 302050872383242240  # disboardのBotのユーザーid
-bump_notice_channel_id = os.environ.get("NOTICE_CHANNEL_ID").split(',')  # bumpの通知をするチャンネルのidのリストです。無ければ空のままにしておいてください。
-bump_notice_message = os.environ.get("NOTICE_MESSAGE")  # bumpの通知のメッセージです。
+try:
+    bump_notice_channel_id = [int(i) for i in os.environ.get("NOTICE_CHANNEL_ID").split(
+        ',')]  # bumpの通知をするチャンネルのidのリストです。無ければ空のままにしておいてください。
+except Exception:
+    bump_notice_channel_id = []
+try:
+    bump_notice_message = os.environ.get("NOTICE_MESSAGE")  # bumpの通知のメッセージです。
+except Exception:
+    bump_notice_message = "もうすぐbumpする時間ですよ！"
 bump_notice_timing = 5  # お知らせをするタイミング 初期設定はbumpする時間の５分前
 
 

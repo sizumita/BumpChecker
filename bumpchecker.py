@@ -1,7 +1,7 @@
 import datetime
 import os
 from os.path import join, dirname
-
+import asyncio
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -90,6 +90,7 @@ class MyBot(commands.Bot):
         self.last_bumped_datetime = message.created_at
         embed = discord.Embed(title="セット完了", description="次回のbumpの計測を開始しました。")
         await message.channel.send(embed=embed)
+        self.last_bump_user_id = user.id
 
     async def on_command_error(self, context, exception):
         pass

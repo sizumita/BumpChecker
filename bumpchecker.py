@@ -1,13 +1,15 @@
-import asyncio
 import datetime
 import os
-from os.path import join, dirname
+import sys
 import traceback
+from os.path import join, dirname
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-import sys
+
 from database import *
+
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
@@ -28,7 +30,7 @@ class MyBot(commands.Bot):
     def __init__(self, command_prefix, **options):
         super().__init__(command_prefix, **options)
         self.last_bumped_datetime = None
-        self.last_bump_user_id = None
+        self.miss_users = []
 
     async def on_ready(self):
         await create_table()
@@ -59,9 +61,16 @@ class MyBot(commands.Bot):
     async def on_message(self, message: discord.Message):
         if message.author.id == disboard_bot_id:
             if "このサーバーを上げられるようになるまであと" in message.embeds[0].description:
+                await self.miss_disboard_command(message)
                 return
             await self.check_disboard_message(message)
         await self.process_commands(message)
+
+    async def miss_disboard_command(self, message: discord.Message):
+        """ミスした場合"""
+        user_id = int(message.content.replace('<@', '').replace('!', '').replace('>', ''))
+        print(f'User {self.get_user(user_id).name} is missed `!disboard bump`')
+        self.miss_users.append(user_id)
 
     async def check_disboard_message(self, message: discord.Message):
         """disboardのメッセージを解析して、誰がbumpに成功したのか判定"""
@@ -70,15 +79,16 @@ class MyBot(commands.Bot):
             return
         user_id = message.content.replace('<@', '').replace('!', '').replace('>', '')
         print(f'User {self.get_user(int(user_id)).name} is successful `!disboard bump`')
-        if self.last_bump_user_id == int(user_id):
-            await self.bump_request_failed(int(user_id), message)
+        if int(user_id) in self.miss_users:
+            await self.bump_request_failed(message)
         else:
             await self.bump_request_succeeded(int(user_id), message)
         self.loop.create_task(self.bump_notice())
+        self.miss_users = []
 
-    async def bump_request_failed(self, user_id, message: discord.Message):
-        """二回連続で失敗した場合"""
-        embed = discord.Embed(title="連続でbumpをすることはできません！", description="連続でbumpに成功しても反映されません。")
+    async def bump_request_failed(self, message: discord.Message):
+        """すでに打っていた場合"""
+        embed = discord.Embed(title="あなたはすでにbumpに失敗しています！", description="１回のbumpチャレンジで打てるコマンドの回数は１回のみです。")
         await message.channel.send(embed=embed)
         self.last_bumped_datetime = message.created_at
         embed = discord.Embed(title="セット完了", description="次回のbumpの計測を開始しました。")
@@ -99,7 +109,6 @@ class MyBot(commands.Bot):
         self.last_bumped_datetime = message.created_at
         embed = discord.Embed(title="セット完了", description="次回のbumpの計測を開始しました。")
         await message.channel.send(embed=embed)
-        self.last_bump_user_id = user.id
 
     async def on_command_error(self, context, exception):
         if isinstance(exception, commands.CommandNotFound):
@@ -130,7 +139,7 @@ async def get_ranking(ctx, datetime1='all', datetime2='', count=100):
 
     for user in list(user_data):
         user_data[user]['near'] = sum(user_data[user]['nears']) / len(user_data[user]['nears'])
-    _sorted = sorted(user_data.items(), key=lambda x: x[1]['count'], reverse=True)
+    _sorted = sorted(user_data.items(), key=lambda _user: _user[1]['count'], reverse=True)
     top = 1
     while True:
         embed = discord.Embed(title="Bumperランキング", description=f'top{top}~top{top + 19}')
@@ -147,6 +156,19 @@ async def get_ranking(ctx, datetime1='all', datetime2='', count=100):
         if not _sorted or not count:
             break
 
+
+@bot.command(name='load')
+async def load_old_data(ctx, message_id):
+    """製作中"""
+    if ',' in message_id:
+        message_id_list = [int(i) for i in message_id.split()]
+    else:
+        message_id_list = [int(message_id)]
+    for _id in message_id_list:
+        message = await ctx.channel.fetch_message(_id)
+        # TODO: ここでメッセージをdisboardのものと判定
+        # TODO: 次にメッセージがすでにないか確認
+        # TODO: 入れる
 
 if __name__ == '__main__':
     bot.run(os.environ.get("TOKEN"))

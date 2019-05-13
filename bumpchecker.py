@@ -2,11 +2,11 @@ import asyncio
 import datetime
 import os
 from os.path import join, dirname
-
+import traceback
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-
+import sys
 from database import *
 
 dotenv_path = join(dirname(__file__), '.env')
@@ -101,7 +101,10 @@ class MyBot(commands.Bot):
         self.last_bump_user_id = user.id
 
     async def on_command_error(self, context, exception):
-        pass
+        if isinstance(exception, commands.CommandNotFound):
+            return
+        exception = exception.original
+        traceback.print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
 
 
 bot = MyBot('!')

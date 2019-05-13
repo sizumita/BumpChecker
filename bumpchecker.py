@@ -8,7 +8,6 @@ from discord.ext import commands
 from dotenv import load_dotenv
 import sys
 from database import *
-
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
@@ -33,6 +32,7 @@ class MyBot(commands.Bot):
 
     async def on_ready(self):
         await create_table()
+        print('Bot is on ready.(ﾟ∀ﾟ)')
 
     async def bump_notice(self):
         """bumpのお知らせをする"""
@@ -69,6 +69,7 @@ class MyBot(commands.Bot):
         if not '表示順をアップしたよ' in content:
             return
         user_id = message.content.replace('<@', '').replace('!', '').replace('>', '')
+        print(f'User {self.get_user(int(user_id)).name} is successful `!disboard bump`')
         if self.last_bump_user_id == int(user_id):
             await self.bump_request_failed(int(user_id), message)
         else:
@@ -112,6 +113,7 @@ bot = MyBot('!')
 
 @bot.command(name='ranking')
 async def get_ranking(ctx, datetime1='all', datetime2='', count=100):
+    print(f'User {ctx.author.name} use ranking command.')
     if datetime1 == 'all':
         user_data = await get_all_bump_data()
         _range = ''

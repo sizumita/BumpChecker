@@ -172,7 +172,7 @@ async def get_ranking(ctx, datetime1='all', datetime2='', count=100):
 async def load_old_data(ctx, message_id):
     """メッセージidを指定することで、過去のdisboardの投稿を記録可能"""
     if ',' in message_id:
-        message_id_list = [int(i) for i in message_id.split()]
+        message_id_list = [int(i) for i in message_id.split(',')]
     else:
         message_id_list = [int(message_id)]
     for _id in message_id_list:

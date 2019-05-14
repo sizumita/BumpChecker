@@ -6,7 +6,7 @@ create table if not exists bump(
     user_id int,
     bump_datetime int,
     near float,
-    success int
+    success int)
 );
 """
 
@@ -102,5 +102,5 @@ async def test():
 if __name__ == '__main__':
     import asyncio
 
-    asyncio.get_event_loop().run_until_complete(test())
-    # asyncio.get_event_loop().run_until_complete(drop_all_data())
+    # asyncio.get_event_loop().run_until_complete(test())
+    asyncio.get_event_loop().run_until_complete(drop_all_data())

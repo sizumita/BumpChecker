@@ -3,11 +3,10 @@ import os
 import sys
 import traceback
 from os.path import join, dirname
-
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-
+import asyncio as ac
 from database import *
 
 dotenv_path = join(dirname(__file__), '.env')
@@ -46,7 +45,7 @@ class MyBot(commands.Bot):
         notice_datetime = self.last_bumped_datetime + datetime.timedelta(hours=2) - datetime.timedelta(
             minutes=bump_notice_timing)
         now = datetime.datetime.utcnow()
-        await asyncio.sleep(notice_datetime.timestamp() - now.timestamp())
+        await ac.sleep(notice_datetime.timestamp() - now.timestamp())
 
         # 送信する
         for _id in bump_notice_channel_id:
@@ -68,41 +67,52 @@ class MyBot(commands.Bot):
 
     async def miss_disboard_command(self, message: discord.Message):
         """ミスした場合"""
-        user_id = int(message.content.replace('<@', '').replace('!', '').replace('>', ''))
-        print(f'User {self.get_user(user_id).name} is missed `!disboard bump`')
-        self.miss_users.append(user_id)
+        user = message.mentions[0]
+        print(f'User {user.name} is missed `!disboard bump`')
+        self.miss_users.append(user.id)
+        if not self.last_bumped_datetime:
+            near = 0
+        else:
+            near = message.created_at.timestamp() - (
+                    self.last_bumped_datetime + datetime.timedelta(hours=2)).timestamp()
+        await create_new_bump_data(user.id, message.created_at, float(near), 0)
 
     async def check_disboard_message(self, message: discord.Message):
         """disboardのメッセージを解析して、誰がbumpに成功したのか判定"""
         content = message.embeds[0].description
         if not '表示順をアップしたよ' in content:
             return
-        user_id = message.content.replace('<@', '').replace('!', '').replace('>', '')
-        print(f'User {self.get_user(int(user_id)).name} is successful `!disboard bump`')
-        if int(user_id) in self.miss_users:
-            await self.bump_request_failed(message)
+        user = message.mentions[0]
+        print(f'User {user.name} is successful `!disboard bump`')
+        if user.id in self.miss_users:
+            await self.bump_request_failed(user, message)
         else:
-            await self.bump_request_succeeded(int(user_id), message)
+            await self.bump_request_succeeded(user, message)
         self.loop.create_task(self.bump_notice())
         self.miss_users = []
 
-    async def bump_request_failed(self, message: discord.Message):
+    async def bump_request_failed(self, user, message: discord.Message):
         """すでに打っていた場合"""
         embed = discord.Embed(title="あなたはすでにbumpに失敗しています！", description="１回のbumpチャレンジで打てるコマンドの回数は１回のみです。")
         await message.channel.send(embed=embed)
+        if not self.last_bumped_datetime:
+            near = 0
+        else:
+            near = message.created_at.timestamp() - (
+                    self.last_bumped_datetime + datetime.timedelta(hours=2)).timestamp()
+        await create_new_bump_data(user.id, message.created_at, float(near), 0)
         self.last_bumped_datetime = message.created_at
         embed = discord.Embed(title="セット完了", description="次回のbumpの計測を開始しました。")
         await message.channel.send(embed=embed)
 
-    async def bump_request_succeeded(self, user_id, message: discord.Message):
+    async def bump_request_succeeded(self, user, message: discord.Message):
         """成功した場合"""
         if not self.last_bumped_datetime:
             near = 0
         else:
             near = message.created_at.timestamp() - (
                     self.last_bumped_datetime + datetime.timedelta(hours=2)).timestamp()
-        user = self.get_user(user_id)
-        await create_new_bump_data(user.id, message.created_at, float(near))
+        await create_new_bump_data(user.id, message.created_at, float(near), 1)
 
         await message.channel.send(embed=discord.Embed(title="Bump成功！", description=f"{str(user)}が成功しました。誤差: {near}秒"))
 
@@ -149,7 +159,8 @@ async def get_ranking(ctx, datetime1='all', datetime2='', count=100):
             user = _sorted.pop(0)
             member = await ctx.guild.fetch_member(user[0])
             embed.add_field(name=f'No.{top} {str(member)} id:{user[0]}',
-                            value=f'カウント:{user[1]["count"]}回  平均誤差:{user[1]["near"]}秒')
+                            value=f'カウント:{user[1]["count"]}回  平均誤差:{user[1]["near"]}秒',
+                            inline=False)
             top += 1
             count -= 1
         await ctx.send(embed=embed)
@@ -159,16 +170,32 @@ async def get_ranking(ctx, datetime1='all', datetime2='', count=100):
 
 @bot.command(name='load')
 async def load_old_data(ctx, message_id):
-    """製作中"""
+    """メッセージidを指定することで、過去のdisboardの投稿を記録可能"""
     if ',' in message_id:
         message_id_list = [int(i) for i in message_id.split()]
     else:
         message_id_list = [int(message_id)]
     for _id in message_id_list:
         message = await ctx.channel.fetch_message(_id)
-        # TODO: ここでメッセージをdisboardのものと判定
-        # TODO: 次にメッセージがすでにないか確認
-        # TODO: 入れる
+        # ここでメッセージをdisboardのものと判定
+        if not message.author.id == disboard_bot_id:
+            await ctx.send('それはdisboardのメッセージではありません。')
+            return
+        # 次にメッセージがすでにないか確認
+        if await check_data(message.mentions[0].id, message.created_at):
+            await ctx.send('すでに存在します')
+        else:
+            # 入れる
+            if "このサーバーを上げられるようになるまであと" in message.embeds[0].description:
+                near = int(message.embeds[0].description.replace("このサーバーを上げられるようになるまであと", '',).replace('分です', '')) * 60
+                await create_new_bump_data(message.mentions[0].id, message.created_at, float(near), 0)
+
+            elif "表示順をアップしたよ" in message.embeds[0].description:
+                await create_new_bump_data(message.mentions[0].id, message.created_at, 0, 1)
+            else:
+                return
+
+            await ctx.send('追加処理完了しました。')
 
 if __name__ == '__main__':
     bot.run(os.environ.get("TOKEN"))

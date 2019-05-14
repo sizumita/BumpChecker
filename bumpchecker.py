@@ -180,7 +180,7 @@ async def load_old_data(ctx, message_id):
         # ここでメッセージをdisboardのものと判定
         if not message.author.id == disboard_bot_id:
             await ctx.send('それはdisboardのメッセージではありません。')
-            return
+            continue
         # 次にメッセージがすでにないか確認
         if await check_data(message.mentions[0].id, message.created_at):
             await ctx.send('すでに存在します')
@@ -193,9 +193,10 @@ async def load_old_data(ctx, message_id):
             elif "表示順をアップしたよ" in message.embeds[0].description:
                 await create_new_bump_data(message.mentions[0].id, message.created_at, 0, 1)
             else:
-                return
+                continue
 
             await ctx.send('追加処理完了しました。')
+    await ctx.send('全ての処理が終了しました。')
 
 if __name__ == '__main__':
     bot.run(os.environ.get("TOKEN"))

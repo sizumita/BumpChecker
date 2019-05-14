@@ -6,8 +6,8 @@ create table if not exists bump(
     user_id int,
     bump_datetime int,
     near float,
-    success int)
-);
+    success int
+    );
 """
 
 

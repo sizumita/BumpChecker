@@ -1,5 +1,4 @@
 import aiosqlite
-
 database_name = "bumpchecker.db"  # データベース名
 table_create_sql = """
 create table if not exists bump(
@@ -16,6 +15,7 @@ async def create_table():
     async with aiosqlite.connect(database_name) as db:
         await db.execute(table_create_sql)
         await db.commit()
+        await asyncio.sleep(1)
 
     # ここからアプデ
     count = await get_column_count()
@@ -95,7 +95,7 @@ async def test():
     await create_table()
     year_before = datetime.datetime.now() - datetime.timedelta(days=365)
     for x in range(365 * 12):
-        await create_new_bump_data(212513828641046529, year_before, random.random())
+        await create_new_bump_data(212513828641046529, year_before, random.random(), 1)
         year_before += datetime.timedelta(hours=2)
 
 

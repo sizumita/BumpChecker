@@ -6,8 +6,8 @@ from os.path import join, dirname
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-import asyncio as ac
 from database import *
+import asyncio
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
@@ -35,6 +35,11 @@ class MyBot(commands.Bot):
         await create_table()
         print('Bot is on ready.(ﾟ∀ﾟ)')
 
+    async def break_five_minutes(self):
+        """bumpしてから5分後までの!disboard bumpはバンプ制限を解除"""
+        await asyncio.sleep(5 * 60)
+        self.miss_users = []
+
     async def bump_notice(self):
         """bumpのお知らせをする"""
 
@@ -45,17 +50,12 @@ class MyBot(commands.Bot):
         notice_datetime = self.last_bumped_datetime + datetime.timedelta(hours=2) - datetime.timedelta(
             minutes=bump_notice_timing)
         now = datetime.datetime.utcnow()
-        await ac.sleep(notice_datetime.timestamp() - now.timestamp())
+        await asyncio.sleep(notice_datetime.timestamp() - now.timestamp())
 
         # 送信する
         for _id in bump_notice_channel_id:
             channel = self.get_channel(_id)
-            # embedの場合
-            if isinstance(bump_notice_message, discord.Embed):
-                await channel.send(embed=bump_notice_message)
-
-            else:
-                await channel.send(bump_notice_message)
+            await channel.send(bump_notice_message)
 
     async def on_message(self, message: discord.Message):
         if message.author.id == disboard_bot_id:
@@ -66,7 +66,7 @@ class MyBot(commands.Bot):
         await self.process_commands(message)
 
     async def miss_disboard_command(self, message: discord.Message):
-        """ミスした場合"""
+        """bumpをミスした場合"""
         user = message.mentions[0]
         print(f'User {user.name} is missed `!disboard bump`')
         self.miss_users.append(user.id)
@@ -90,6 +90,7 @@ class MyBot(commands.Bot):
             await self.bump_request_succeeded(user, message)
         self.loop.create_task(self.bump_notice())
         self.miss_users = []
+        self.loop.create_task(self.break_five_minutes())
 
     async def bump_request_failed(self, user, message: discord.Message):
         """すでに打っていた場合"""

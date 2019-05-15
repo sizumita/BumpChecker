@@ -1,4 +1,5 @@
 import aiosqlite
+import asyncio 
 database_name = "bumpchecker.db"  # データベース名
 table_create_sql = """
 create table if not exists bump(
@@ -98,9 +99,3 @@ async def test():
         await create_new_bump_data(212513828641046529, year_before, random.random(), 1)
         year_before += datetime.timedelta(hours=2)
 
-
-if __name__ == '__main__':
-    import asyncio
-
-    # asyncio.get_event_loop().run_until_complete(test())
-    asyncio.get_event_loop().run_until_complete(drop_all_data())

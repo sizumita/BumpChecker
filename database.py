@@ -1,3 +1,4 @@
+import asyncio
 import aiosqlite
 import asyncio 
 database_name = "bumpchecker.db"  # データベース名
@@ -20,6 +21,9 @@ async def create_table():
 
     # ここからアプデ
     count = await get_column_count()
+    if not count:
+        return
+
     if not count == 4:
         async with aiosqlite.connect(database_name) as db:
             await db.execute('alter table bump add column success int default 1;')

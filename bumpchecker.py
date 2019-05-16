@@ -3,25 +3,30 @@ import os
 import sys
 import traceback
 from os.path import join, dirname
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+
 from database import *
 import asyncio
-
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
 disboard_bot_id = 302050872383242240  # disboardのBotのユーザーid
 try:
-    bump_notice_channel_id = [int(i) for i in os.environ.get("NOTICE_CHANNEL_ID").split(
-        ',')]  # bumpの通知をするチャンネルのidのリストです。無ければ空のままにしておいてください。
+    bump_notice_channel_id = [
+        *map(int, os.environ.get("NOTICE_CHANNEL_ID").split(","))]  # bumpの通知をするチャンネルのidのリストです。無ければ空のままにしておいてください。
 except Exception:
     bump_notice_channel_id = []
 try:
     bump_notice_message = os.environ.get("NOTICE_MESSAGE")  # bumpの通知のメッセージです。
 except Exception:
     bump_notice_message = "もうすぐbumpする時間ですよ！"
+try:
+    can_command_roles = [*map(int, os.environ.get("CAN_COMMAND_ROLES").split(","))]  # bumpの通知のメッセージです。
+except Exception:
+    can_command_roles = []
 bump_notice_timing = 5  # お知らせをするタイミング 初期設定はbumpする時間の５分前
 
 
@@ -58,6 +63,7 @@ class MyBot(commands.Bot):
             await channel.send(bump_notice_message)
 
     async def on_message(self, message: discord.Message):
+        await self.check_disboard_message(message)
         if message.author.id == disboard_bot_id:
             if "このサーバーを上げられるようになるまであと" in message.embeds[0].description:
                 await self.miss_disboard_command(message)
@@ -131,8 +137,20 @@ class MyBot(commands.Bot):
 bot = MyBot('!')
 
 
+def check_user_roles(ctx):
+    if not can_command_roles:
+        return True
+    for role in ctx.author.roles:
+        if role.id in can_command_roles:
+            return True
+    return False
+
+
 @bot.command(name='ranking')
 async def get_ranking(ctx, datetime1='all', datetime2='', count=100):
+    if not check_user_roles(ctx):
+        return
+
     print(f'User {ctx.author.name} use ranking command.')
     if datetime1 == 'all':
         user_data = await get_all_bump_data()
@@ -172,6 +190,9 @@ async def get_ranking(ctx, datetime1='all', datetime2='', count=100):
 @bot.command(name='load')
 async def load_old_data(ctx, message_id):
     """メッセージidを指定することで、過去のdisboardの投稿を記録可能"""
+    if not check_user_roles(ctx):
+        return
+
     if ',' in message_id:
         message_id_list = [int(i) for i in message_id.split(',')]
     else:
@@ -188,7 +209,7 @@ async def load_old_data(ctx, message_id):
         else:
             # 入れる
             if "このサーバーを上げられるようになるまであと" in message.embeds[0].description:
-                near = int(message.embeds[0].description.replace("このサーバーを上げられるようになるまであと", '',).replace('分です', '')) * 60
+                near = int(message.embeds[0].description.replace("このサーバーを上げられるようになるまであと", '', ).replace('分です', '')) * 60
                 await create_new_bump_data(message.mentions[0].id, message.created_at, float(near), 0)
 
             elif "表示順をアップしたよ" in message.embeds[0].description:
@@ -198,6 +219,7 @@ async def load_old_data(ctx, message_id):
 
             await ctx.send('追加処理完了しました。')
     await ctx.send('全ての処理が終了しました。')
+
 
 if __name__ == '__main__':
     bot.run(os.environ.get("TOKEN"))

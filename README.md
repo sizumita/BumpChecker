@@ -11,6 +11,8 @@ gitに上がっている以外に`bumpchecker.db`と`.env`ファイルがあり�
 TOKEN=あなたのBotトークン
 NOTICE_CHANNEL_ID=bumpをするお知らせをしたいチャンネルのid（複数ある場合は,で仕切ってください。）
 NOTICE_MESSAGE=bumpのお知らせのメッセージ
+CAN_COMMAND_ROLES=あなたがBotのコマンドを実行するのを許可する役職idを書いてください。（複数ある場合は,で仕切ってください。）
+                  書かなければ全ての人が使えます。
 ```
 
 # 必要なライブラリ

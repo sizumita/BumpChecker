@@ -221,5 +221,17 @@ async def load_old_data(ctx, message_id):
     await ctx.send('全ての処理が終了しました。')
 
 
+@bot.command(name='roles')
+async def roles(ctx):
+    """roleの名前とidを取得します。administrator専用です。"""
+    if ctx.author.guild_permissions.administrator:
+        text = '```\n'
+        for role in ctx.guild.roles:
+            text += f'{role.name}: {role.id}\n'
+        text += '```'
+        await ctx.send(text[:2000])
+
+
+
 if __name__ == '__main__':
     bot.run(os.environ.get("TOKEN"))

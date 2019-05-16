@@ -232,6 +232,5 @@ async def roles(ctx):
         await ctx.send(text[:2000])
 
 
-
 if __name__ == '__main__':
     bot.run(os.environ.get("TOKEN"))

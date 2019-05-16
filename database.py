@@ -1,4 +1,3 @@
-import asyncio
 import aiosqlite
 import asyncio 
 database_name = "bumpchecker.db"  # データベース名

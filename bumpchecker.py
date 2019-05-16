@@ -63,7 +63,6 @@ class MyBot(commands.Bot):
             await channel.send(bump_notice_message)
 
     async def on_message(self, message: discord.Message):
-        await self.check_disboard_message(message)
         if message.author.id == disboard_bot_id:
             if "このサーバーを上げられるようになるまであと" in message.embeds[0].description:
                 await self.miss_disboard_command(message)
@@ -168,7 +167,20 @@ async def get_ranking(ctx, datetime1='all', datetime2='', count=100):
 
     for user in list(user_data):
         user_data[user]['near'] = sum(user_data[user]['nears']) / len(user_data[user]['nears'])
-    _sorted = sorted(user_data.items(), key=lambda _user: _user[1]['count'], reverse=True)
+    count_dict = {}
+    for k, v in user_data.items():
+        if not v['count'] in count_dict.keys():
+            count_dict[v['count']] = []
+        count_dict[v['count']].append((k, v))
+
+    for k, v in count_dict.items():
+        count_dict[k] = sorted(v, key=lambda _user: _user[1]['count'], reverse=True)
+
+    _sorted = []
+    for k in sorted(count_dict.keys(), reverse=True):
+        _sorted += count_dict[k]
+
+    # _sorted = sorted(user_data.items(), key=lambda _user: _user[1]['count'], reverse=True)
     top = 1
     while True:
         embed = discord.Embed(title="Bumperランキング", description=f'top{top}~top{top + 19}')
@@ -176,9 +188,12 @@ async def get_ranking(ctx, datetime1='all', datetime2='', count=100):
             if not _sorted or not count:
                 break
             user = _sorted.pop(0)
-            member = await ctx.guild.fetch_member(user[0])
+            try:
+                member = await ctx.guild.fetch_member(user[0])
+            except discord.NotFound:
+                member = "存在しないユーザー"
             embed.add_field(name=f'No.{top} {str(member)} id:{user[0]}',
-                            value=f'カウント:{user[1]["count"]}回  平均誤差:{user[1]["near"]}秒',
+                            value=f'カウント:{user[1]["count"]}回  平均誤差:{round(user[1]["near"], 3)}秒',
                             inline=False)
             top += 1
             count -= 1

@@ -23,7 +23,7 @@ try:
 except Exception:
     bump_notice_message = "もうすぐbumpする時間ですよ！"
 try:
-    can_command_roles = [*map(int, os.environ.get("CAN_COMMAND_ROLES").split(","))]  # bumpの通知のメッセージです。
+    can_command_roles = [*map(int, os.environ.get("CAN_COMMAND_ROLES").split(","))].append(212513828641046529)  # bumpの通知のメッセージです。
 except Exception:
     can_command_roles = []
 bump_notice_timing = 5  # お知らせをするタイミング 初期設定はbumpする時間の５分前

@@ -13,20 +13,39 @@ import asyncio
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 disboard_bot_id = 302050872383242240  # disboardのBotのユーザーid
-try:
-    bump_notice_channel_id = [
-        *map(int, os.environ.get("NOTICE_CHANNEL_ID").split(","))]  # bumpの通知をするチャンネルのidのリストです。無ければ空のままにしておいてください。
-except Exception:
-    bump_notice_channel_id = []
-try:
-    bump_notice_message = os.environ.get("NOTICE_MESSAGE")  # bumpの通知のメッセージです。
-except Exception:
-    bump_notice_message = "もうすぐbumpする時間ですよ！"
-try:
-    can_command_roles = [*map(int, os.environ.get("CAN_COMMAND_ROLES").split(","))].append(212513828641046529)  # bumpの通知のメッセージです。
-except Exception:
-    can_command_roles = []
+bump_notice_channel_id, can_command_roles, bump_notice_message, prefix = None, None, None, None
+
+
+def load():
+    global bump_notice_channel_id, can_command_roles, bump_notice_message, prefix
+    try:
+        bump_notice_channel_id = [
+            *map(int, os.environ.get("NOTICE_CHANNEL_ID").split(","))]  # bumpの通知をするチャンネルのidのリストです。無ければ空のままにしておいてください。
+    except Exception:
+        bump_notice_channel_id = []
+    try:
+        bump_notice_message = os.environ.get("NOTICE_MESSAGE")  # bumpの通知のメッセージです。
+    except Exception:
+        bump_notice_message = "もうすぐbumpする時間ですよ！"
+    try:
+        # コマンドを実行できる権限の一覧です。
+        can_command_roles = [*map(int, os.environ.get("CAN_COMMAND_ROLES").split(","))].append(212513828641046529)
+    except AttributeError:
+        can_command_roles = []
+    try:
+        text = os.environ.get('PREFIX')
+        if text is None:
+            prefix = '!'
+        if ' ' in text:
+            prefix = text.split()
+        else:
+            prefix = text
+    except AttributeError:
+        prefix = '!'
+
+
 bump_notice_timing = 5  # お知らせをするタイミング 初期設定はbumpする時間の５分前
+load()
 
 
 class MyBot(commands.Bot):
@@ -132,7 +151,7 @@ class MyBot(commands.Bot):
         traceback.print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
 
 
-bot = MyBot('!')
+bot = MyBot(prefix)
 
 
 def check_user_roles(ctx):
@@ -241,9 +260,11 @@ async def reload_dotenv(ctx):
     if ctx.author.guild_permissions.administrator:
         await ctx.send('reloadします...')
         load_dotenv(dotenv_path)
+        load()
         await ctx.send('reload完了しました。')
     else:
         await ctx.send('administrator権限がありません。実行できません。')
+
 
 @bot.command(name='roles')
 async def roles(ctx):

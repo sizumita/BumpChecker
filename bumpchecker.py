@@ -12,7 +12,6 @@ from database import *
 import asyncio
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
-
 disboard_bot_id = 302050872383242240  # disboardのBotのユーザーid
 try:
     bump_notice_channel_id = [
@@ -235,6 +234,16 @@ async def load_old_data(ctx, message_id):
             await ctx.send('追加処理完了しました。')
     await ctx.send('全ての処理が終了しました。')
 
+
+@bot.command(name='reload')
+async def reload_dotenv(ctx):
+    """dotenvファイルを再読み込みします。administrator専用です。"""
+    if ctx.author.guild_permissions.administrator:
+        await ctx.send('reloadします...')
+        load_dotenv(dotenv_path)
+        await ctx.send('reload完了しました。')
+    else:
+        await ctx.send('administrator権限がありません。実行できません。')
 
 @bot.command(name='roles')
 async def roles(ctx):

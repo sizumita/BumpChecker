@@ -64,7 +64,7 @@ async def get_range_bump_data_(before, after):
     user_data = {}
     async with aiosqlite.connect(database_name) as db:
         # datetimeはtimestampで保存されているためtimestampに変換
-        async with db.execute('SELECT * FROM bump where ? < bump_datetime and ? > bump_datetime',
+        async with db.execute('SELECT * FROM bump where ? < bump_datetime and ? > bump_datetime and success = 1',
                               (before.timestamp(), after.timestamp())) as cursor:
             async for row in cursor:
                 if not row[0] in user_data.keys():

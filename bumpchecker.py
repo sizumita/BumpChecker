@@ -3,7 +3,7 @@ import os
 import sys
 import traceback
 from os.path import join, dirname
-
+import re
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -105,7 +105,7 @@ class MyBot(commands.Bot):
         content = message.embeds[0].description
         if not '表示順をアップしたよ' in content:
             return
-        user = message.mentions[0]
+        user = message.guild.get_member(int(re.search('<(!@|@)([0-9]+)>', message.embeds[0].description).groups()[1]))
         print(f'User {user.name} is successful `!disboard bump`')
         if user.id in self.miss_users:
             await self.bump_request_failed(user, message)

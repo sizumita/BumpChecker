@@ -90,7 +90,7 @@ class MyBot(commands.Bot):
 
     async def miss_disboard_command(self, message: discord.Message):
         """bumpをミスした場合"""
-        user = message.mentions[0]
+        user = message.guild.get_member(int(re.search('<(!@|@)([0-9]+)>', message.embeds[0].description).groups()[1]))
         print(f'User {user.name} is missed `!disboard bump`')
         self.miss_users.append(user.id)
         if not self.last_bumped_datetime:

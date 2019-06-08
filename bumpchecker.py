@@ -232,21 +232,22 @@ async def load_old_data(ctx, message_id):
         message_id_list = [int(message_id)]
     for _id in message_id_list:
         message = await ctx.channel.fetch_message(_id)
+        user = message.guild.get_member(int(re.search('<(!@|@)([0-9]+)>', message.embeds[0].description).groups()[1]))
         # ここでメッセージをdisboardのものと判定
         if not message.author.id == disboard_bot_id:
             await ctx.send('それはdisboardのメッセージではありません。')
             continue
         # 次にメッセージがすでにないか確認
-        if await check_data(message.mentions[0].id, message.created_at):
+        if await check_data(user.id, message.created_at):
             await ctx.send('すでに存在します')
         else:
             # 入れる
             if "このサーバーを上げられるようになるまであと" in message.embeds[0].description:
                 near = int(message.embeds[0].description.replace("このサーバーを上げられるようになるまであと", '', ).replace('分です', '')) * 60
-                await create_new_bump_data(message.mentions[0].id, message.created_at, float(near), 0)
+                await create_new_bump_data(user.id, message.created_at, float(near), 0)
 
             elif "表示順をアップしたよ" in message.embeds[0].description:
-                await create_new_bump_data(message.mentions[0].id, message.created_at, 0, 1)
+                await create_new_bump_data(user.id, message.created_at, 0, 1)
             else:
                 continue
 

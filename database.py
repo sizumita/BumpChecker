@@ -1,5 +1,7 @@
+import asyncio
+
 import aiosqlite
-import asyncio 
+
 database_name = "bumpchecker.db"  # データベース名
 table_create_sql = """
 create table if not exists bump(
@@ -57,7 +59,8 @@ async def get_all_bump_data():
                     user_data[row[0]] = dict(count=0, nears=[])
                 user_data[row[0]]['count'] += 1
                 user_data[row[0]]['nears'].append(row[2])
-    return user_data
+
+    return [dict(id=key, **user_data[key]) for key in user_data.keys()]
 
 
 async def get_range_bump_data_(before, after):
@@ -71,7 +74,21 @@ async def get_range_bump_data_(before, after):
                     user_data[row[0]] = dict(count=0, nears=[])
                 user_data[row[0]]['count'] += 1
                 user_data[row[0]]['nears'].append(row[2])
-    return user_data
+    return [dict(id=key, **user_data[key]) for key in user_data.keys()]
+
+
+async def get_range_user_data(user_id, before, after):
+    bump_datetimes = []
+    nears = []
+    async with aiosqlite.connect(database_name) as db:
+        # datetimeはtimestampで保存されているためtimestampに変換
+        async with db.execute(
+                'SELECT * FROM bump where ? < bump_datetime and ? > bump_datetime and success = 1 and user_id = ?',
+                (before.timestamp(), after.timestamp(), user_id)) as cursor:
+            async for row in cursor:
+                bump_datetimes.append(row[1])
+                nears.append(row[2])
+    return bump_datetimes, nears
 
 
 async def check_data(user_id, bump_datetime):
@@ -101,4 +118,3 @@ async def test():
     for x in range(365 * 12):
         await create_new_bump_data(212513828641046529, year_before, random.random(), 1)
         year_before += datetime.timedelta(hours=2)
-

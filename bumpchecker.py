@@ -1,15 +1,18 @@
+import asyncio
 import datetime
 import os
+import re
 import sys
 import traceback
 from os.path import join, dirname
-import re
+from statistics import mean
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
 from database import *
-import asyncio
+
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 disboard_bot_id = 302050872383242240  # disboardのBotのユーザーid
@@ -182,42 +185,69 @@ async def get_ranking(ctx, datetime1='all', datetime2='', count=100):
         except Exception:
             await ctx.send('datetimeの書式が間違っています。')
             return
+    _user_data = []
+    for user in user_data:
+        user['count'] = -user['count']
+        user['near'] = mean(user['nears'])
+        _user_data.append(user)
 
-    for user in list(user_data):
-        user_data[user]['near'] = sum(user_data[user]['nears']) / len(user_data[user]['nears'])
-    count_dict = {}
-    for k, v in user_data.items():
-        if not v['count'] in count_dict.keys():
-            count_dict[v['count']] = []
-        count_dict[v['count']].append((k, v))
-
-    for k, v in count_dict.items():
-        count_dict[k] = sorted(v, key=lambda _user: _user[1]['count'], reverse=True)
-
-    _sorted = []
-    for k in sorted(count_dict.keys(), reverse=True):
-        _sorted += count_dict[k]
-
-    # _sorted = sorted(user_data.items(), key=lambda _user: _user[1]['count'], reverse=True)
+    sorted_user_data = sorted(
+        _user_data,
+        key=lambda x: (x['count'], x['near'])
+    )
     top = 1
     while True:
         embed = discord.Embed(title="Bumperランキング", description=f'top{top}~top{top + 19}')
         for x in range(20):
-            if not _sorted or not count:
+            if not sorted_user_data or top == count:
+                top = -1
                 break
-            user = _sorted.pop(0)
+            user = sorted_user_data.pop(0)
             try:
-                member = await ctx.guild.fetch_member(user[0])
+                member = await ctx.guild.fetch_member(user['id'])
             except discord.NotFound:
                 member = "存在しないユーザー"
-            embed.add_field(name=f'No.{top} {str(member)} id:{user[0]}',
-                            value=f'カウント:{user[1]["count"]}回  平均誤差:{round(user[1]["near"], 3)}秒',
+            embed.add_field(name=f'No.{top} {str(member)} id:{user["id"]}',
+                            value=f'カウント:{-user["count"]}回  平均誤差:{round(user["near"], 3)}秒',
                             inline=False)
             top += 1
             count -= 1
         await ctx.send(embed=embed)
-        if not _sorted or not count:
+        if top == -1 or not sorted_user_data:
             break
+
+
+# @bot.command(name='putrole')
+# async def put_role(ctx, before, after, role: discord.Role, r: int):
+#     await ctx.send('付与を開始します。')
+#     try:
+#         before = datetime.datetime.strptime(before, '%Y/%m/%d-%H:%M:%S')
+#         after = datetime.datetime.strptime(after, '%Y/%m/%d-%H:%M:%S')
+#         _range = f'{before}~{after}'
+#     except Exception:
+#         await ctx.send('datetimeの書式が間違っています。')
+#         return
+#     user_ids = await get_range_bump_data_(before, after)
+#     user_ids = list(user_ids.keys())
+#     c = collections.Counter(user_ids)
+#     counts = collections.defaultdict(list)
+#     for _id, count in c.most_common():
+#         counts[count].append(_id)
+#
+#     ranking = []
+#     for count, users in sorted(counts.items(), reverse=True):
+#         if len(users) == 1:
+#             ranking.append(users[0])
+#             continue
+#
+#         o = {await get_user_near_average(i, before, after): i for i in users}
+#         for av, _id in sorted(o.items()):
+#             ranking.append(_id)
+#
+#     for _id in ranking[:r]:
+#         member = ctx.guild.get_member(_id)
+#         await member.add_roles(role)
+#     await ctx.send('付与終了しました。')
 
 
 @bot.command(name='load')
@@ -253,6 +283,11 @@ async def load_old_data(ctx, message_id):
 
             await ctx.send('追加処理完了しました。')
     await ctx.send('全ての処理が終了しました。')
+
+
+async def get_user_near_average(user_id, before, after):
+    d, nears = await get_range_user_data(user_id, before, after)
+    return sum(nears) / len(nears)
 
 
 @bot.command(name='reload')

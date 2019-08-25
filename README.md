@@ -20,4 +20,5 @@ PREFIX=! (あなたがBotのプレフィックスに使用したい文字を入�
 ```text
 discord.py>=1.0.0
 aiosqlite>=0.10.0
+python-dotenv
 ```
